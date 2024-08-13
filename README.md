@@ -1,4 +1,4 @@
-# MuseHeart-MusicBot
+# Tyozui-MusicBot
 ## bot de música programado em python com player interativo, comandos de barra + slash, integração com o [last.fm](https://www.last.fm/) e muito mais.
 
 ## Página com invites e algumas infos/screenshots da Muse Heart e funcionamento dessa source: [clique aqui](https://gist.github.com/zRitsu/4875008554a00c3c372b2df6dcdf437f#file-muse_heart_invites-md).
