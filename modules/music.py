@@ -939,7 +939,7 @@ class Music(commands.Cog):
                 txt += f"`Você não possui integração adicionada... " \
                         f"Use as integrações para adicionar links de canais do youtube (ou link de perfil de algum usuário de alguma plataforma de música) para ter acesso facilita a todas a playlists públicas que o mesmo possui.`\n"
 
-            txt += f"-# Para gerenciar suas integrações use o comando {fav_slashcmd} selecionando a opção \"integrações\".\n" \
+            txt += f"-# Para gerenciar suas integrações use o comando {fav_slashcmd} e em seguida selecione a opção \"integrações\".\n" \
                     f"### `[💾] Fila Salva [💾]`\n"
 
             if os.path.isfile(f"./local_database/saved_queues_v1/users/{inter.author.id}.pkl"):
@@ -1114,7 +1114,7 @@ class Music(commands.Cog):
                 elif menu == "integrations":
                     embed.description = '### `[💠] ⠂Integrações ⠂[💠]`\n' \
                                         '`Tocar playlist pública de um canal do youtube (ou de um perfil de usuário de alguma plataforma de música) da sua lista de integrações.`\n' \
-                                        f'-# Para gerenciar suas integrações use o comando {fav_slashcmd} selecionando a opção \"integrações\".\n\n' \
+                                        f'-# Para gerenciar suas integrações use o comando {fav_slashcmd} e em seguida selecione a opção \"integrações\".\n\n' \
                                          f'{embed.description}\n\n'
 
                 elif menu == "guild_favs":
@@ -1262,7 +1262,7 @@ class Music(commands.Cog):
 
                     if not (info := self.bot.pool.integration_cache.get(cache_key)):
                         result = await self.bot.spotify.get_user_playlists(user_id)
-                        info = {"entries": [{"title": t["name"], "url": t["external_urls"]["spotify"]} for t in result["items"]]}
+                        info = {"entries": [{"title": t["name"], "url": f'{t["external_urls"]["spotify"]}/playlists'} for t in result["items"]]}
                         self.bot.pool.integration_cache[cache_key] = info
 
                 elif (matches := deezer_regex.match(query)):
@@ -1281,7 +1281,7 @@ class Music(commands.Cog):
 
                     if not (info := self.bot.pool.integration_cache.get(cache_key)):
                         result = await bot.deezer.get_user_playlists(user_id)
-                        info = {"entries": [{"title": t['title'], "url": t['link']} for t in result]}
+                        info = {"entries": [{"title": t['title'], "url": f"{t['link']}/playlists"} for t in result]}
                         self.bot.pool.integration_cache[cache_key] = info
 
                 elif not self.bot.config["USE_YTDL"]:
