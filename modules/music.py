@@ -1100,9 +1100,12 @@ class Music(commands.Cog):
                 query = list(fav_opts)[0]["option"].value
 
             else:
+
+                check_url = (lambda i: f"{i}/playlists" if (".spotify." in i or '.deezer.' in i) else i)
+
                 embed = disnake.Embed(
                     color=self.bot.get_color(guild.me),
-                    description="\n".join(f"{get_source_emoji_cfg(bot, i['url']) or ''} [`{fix_characters(i['option'].label, 45)}`]({i['url']})" for i in fav_opts)
+                    description="\n".join(f"{get_source_emoji_cfg(bot, i['url']) or ''} [`{fix_characters(i['option'].label, 45)}`]({check_url(i['url'])})" for i in fav_opts)
                 )
 
                 if menu == "favs":
@@ -1241,7 +1244,8 @@ class Music(commands.Cog):
                     await self.bot.update_global_data(inter.author.id, user_data, db_name=DBModel.users)
 
                 query = integration_data["url"]
-                profile_avatar = integration_data["avatar"]
+
+                profile_avatar = integration_data.get("avatar")
 
                 if (matches := spotify_regex_w_user.match(query)):
 
@@ -1262,7 +1266,7 @@ class Music(commands.Cog):
 
                     if not (info := self.bot.pool.integration_cache.get(cache_key)):
                         result = await self.bot.spotify.get_user_playlists(user_id)
-                        info = {"entries": [{"title": t["name"], "url": f'{t["external_urls"]["spotify"]}/playlists'} for t in result["items"]]}
+                        info = {"entries": [{"title": t["name"], "url": f'{t["external_urls"]["spotify"]}'} for t in result["items"]]}
                         self.bot.pool.integration_cache[cache_key] = info
 
                 elif (matches := deezer_regex.match(query)):
@@ -1281,7 +1285,7 @@ class Music(commands.Cog):
 
                     if not (info := self.bot.pool.integration_cache.get(cache_key)):
                         result = await bot.deezer.get_user_playlists(user_id)
-                        info = {"entries": [{"title": t['title'], "url": f"{t['link']}/playlists"} for t in result]}
+                        info = {"entries": [{"title": t['title'], "url": f"{t['link']}"} for t in result]}
                         self.bot.pool.integration_cache[cache_key] = info
 
                 elif not self.bot.config["USE_YTDL"]:
