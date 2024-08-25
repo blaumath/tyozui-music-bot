@@ -259,14 +259,13 @@ class Node:
             else:
                 traceback.print_exc()
 
-        r = await self.session.post(url=f"{self.rest_uri}/youtube",
+        async with self.session.post(url=f"{self.rest_uri}/youtube",
             json={
               "poToken": browser.data["po_token"],
               "visitorData": browser.data["visitor_data"]
             }, headers=self._websocket.headers
-        )
-
-        print(f"{r.status}: {await r.text()}")
+        ) as r:
+            return f"{r.status}: {await r.text()}"
 
     async def update_player(self, guild_id: int, data: dict, replace: bool = False):
 
@@ -502,9 +501,8 @@ class Node:
             raise Exception(f"Lyrics plugin not available on Node: {self.identifier}")
 
         async with self.session.get(f"{self.rest_uri}/v4/lyrics/{ytid}", headers=self.headers) as r:
-            if r.status != 200:
-                print(f"Lyrics fetching failed: {r.status} - {await r.text()}")
-                return
+            if r.status not in (200, 404):
+                r.raise_for_status()
             return await r.json()
 
     def get_player(self, guild_id: int) -> Optional[Player]:
