@@ -866,6 +866,7 @@ class MusicSettings(commands.Cog):
             player.static = True
             player.text_channel = channel
             player.setup_hints()
+            player.setup_features()
             await player.invoke_np(force=True)
 
         elif not message or message.channel.id != channel.id:
@@ -962,7 +963,7 @@ class MusicSettings(commands.Cog):
             channel = None
 
         if not channel or channel.guild.id != inter.guild_id:
-            raise GenericError(f"**Não há canais de pedido de música configurado (ou o canal foi deletado).**")
+            raise GenericError(f"**Não há canais de pedido de música configurado no bot {bot.user.mention} (ou o canal foi deletado).**")
 
         try:
             if isinstance(channel.parent, disnake.ForumChannel):
@@ -996,7 +997,7 @@ class MusicSettings(commands.Cog):
             "channel": None
         })
 
-        await self.bot.update_data(guild.id, guild_data, db_name=DBModel.guilds)
+        await bot.update_data(guild.id, guild_data, db_name=DBModel.guilds)
 
         try:
             func = inter.edit_original_message
@@ -1004,7 +1005,10 @@ class MusicSettings(commands.Cog):
             try:
                 func = inter.response.edit_message
             except AttributeError:
-                func = inter.send
+                try:
+                    func = inter.store_message.edit
+                except AttributeError:
+                    func = inter.send
 
         await func(
             embed=disnake.Embed(
