@@ -1845,11 +1845,16 @@ class Music(commands.Cog):
                 else:
                     func = inter.send
 
+            footer_txt = "♾️ Scrobble ativado" if user_data["lastfm"]["sessionkey"] and user_data["lastfm"]["scrobble"] else ""
+
             try:
                 if bot.user.id != self.bot.user.id:
-                    embed.set_footer(text=f"Bot selecionado: {bot.user.display_name}", icon_url=bot.user.display_avatar.url)
+                    embed.set_footer(text=f"Bot selecionado: {bot.user.display_name}" + (f" ⠂{footer_txt}" if footer_txt else ""), icon_url=bot.user.display_avatar.url)
+                if footer_txt:
+                    embed.set_footer(text=footer_txt)
             except AttributeError:
-                pass
+                if footer_txt:
+                    embed.set_footer(text=footer_txt)
 
             if loadtype == "track":
                 components = [
@@ -5365,6 +5370,32 @@ class Music(commands.Cog):
                     ]
                 )
 
+                return
+
+            if control == PlayerControls.lastfm_scrobble:
+                await interaction.response.defer(ephemeral=True, with_message=True)
+                user_data = await self.bot.get_global_data(interaction.author.id, db_name=DBModel.users)
+
+                if not user_data["lastfm"]["sessionkey"]:
+                    try:
+                        cmd = f"</lastfm:" + str(self.bot.get_global_command_named("lastfm",
+                                                                                 cmd_type=disnake.ApplicationCommandType.chat_input).id) + ">"
+                    except AttributeError:
+                        cmd = "/lastfm"
+
+                    await interaction.edit_original_message(
+                        content=f"Você não possui uma conta do last.fm vinculada nos meus dados. "
+                                f"Você pode vincular uma conta do last.fm usando o comando {cmd}."
+                    )
+                    return
+
+                user_data["lastfm"]["scrobble"] = not user_data["lastfm"]["scrobble"]
+                await interaction.edit_original_message(
+                    embed=disnake.Embed(
+                        description=f'**O scrobble/registro de músicas foi {"ativado" if user_data["lastfm"]["scrobble"] else "desativado"} na sua conta do last.fm.**',
+                        color=self.bot.get_color()
+                    )
+                )
                 return
 
             if control == PlayerControls.enqueue_fav:
