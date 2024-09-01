@@ -4,6 +4,7 @@ import datetime
 import itertools
 import os.path
 import pickle
+import pprint
 import re
 import traceback
 import zlib
@@ -2074,7 +2075,7 @@ class Music(commands.Cog):
 
             if isinstance(inter, disnake.MessageInteraction) and inter.data.custom_id == "queue_track_selection":
                 await inter.response.edit_message(embed=embed, view=None)
-            elif inter.data.custom_id == "musicplayer_queue_dropdown":
+            elif not isinstance(inter, CustomContext) and inter.data.custom_id == "musicplayer_queue_dropdown":
                 await inter.response.defer()
             else:
                 await inter.send(embed=embed, ephemeral=ephemeral)
@@ -5393,7 +5394,7 @@ class Music(commands.Cog):
                 await self.bot.update_global_data(interaction.author.id, user_data, db_name=DBModel.users)
                 await interaction.edit_original_message(
                     embed=disnake.Embed(
-                        description=f'**O scrobble/registro de músicas foi {"ativado" if user_data["lastfm"]["scrobble"] else "desativado"} na sua conta do last.fm.**',
+                        description=f'**O scrobble/registro de músicas foi {"ativado" if user_data["lastfm"]["scrobble"] else "desativado"} na conta: [{user_data["lastfm"]["username"]}](<https://www.last.fm/user/{user_data["lastfm"]["username"]}>).**',
                         color=self.bot.get_color()
                     )
                 )
@@ -5632,7 +5633,9 @@ class Music(commands.Cog):
                     await interaction.response.defer(ephemeral=True, with_message=True)
 
                     if player.current.info["extra"].get("lyrics") is None:
-                        player.current.info["extra"]["lyrics"] = await player.node.fetch_ytm_lyrics(player.current.ytid)
+                        lyrics_data = await player.node.fetch_ytm_lyrics(player.current.ytid)
+                        player.current.info["extra"]["lyrics"] = {} if lyrics_data.get("track") is None else lyrics_data
+
                     elif not player.current.info["extra"]["lyrics"]:
                         try:
                             await self.player_interaction_concurrency.release(interaction)
@@ -5646,7 +5649,6 @@ class Music(commands.Cog):
                             await self.player_interaction_concurrency.release(interaction)
                         except:
                             pass
-                        player.current.info["extra"]["lyrics"] = {}
                         await interaction.edit_original_message(f"**{not_found_msg}**")
                         return
 
