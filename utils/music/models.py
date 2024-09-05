@@ -1107,6 +1107,12 @@ class LavalinkPlayer(wavelink.Player):
             elif self.keep_connected and not track.autoplay and len(self.queue) > 15:
                 self.queue.append(track)
 
+            if event.cause == "com.github.topi314.lavasrc.mirror.TrackNotFoundException: Playlist is empty":
+                embed = disnake.Embed(
+                    description=f"`Ignorando a música` [`{track.title}`](<{track.url}>)`. Pois não houve resultados em outras plataformas de música.`",
+                    color=self.bot.get_color(self.guild.me)
+                ).set_thumbnail(track.thumb)
+
             if isinstance(self.text_channel, disnake.Thread):
                 send_message_perm = self.text_channel.parent.permissions_for(self.guild.me).send_messages_in_threads
             else:
@@ -1642,8 +1648,9 @@ class LavalinkPlayer(wavelink.Player):
                         author = self.lastfm_artists.pop(0)
                     except:
                         author = track_data.author
-
+                        
                     if track_data.info["sourceName"] == "youtube" and self.native_yt:
+
                         queries = [f"https://www.youtube.com/watch?v={track_data.ytid}&list=RD{track_data.ytid}"]
 
                         if p_dict:=providers_dict.get(track_data.info["sourceName"]):
@@ -1926,9 +1933,9 @@ class LavalinkPlayer(wavelink.Player):
                         await self.process_next()
                         return
 
-            if not self.native_yt and (track.info["sourceName"] == "youtube" or track.info.get("sourceNameOrig") == "youtube"):
+            if (not self.native_yt or not self.node.prefer_youtube_native_playback) and (track.info["sourceName"] == "youtube" or track.info.get("sourceNameOrig") == "youtube"):
 
-                if track.is_stream or track.duration > 480000:
+                if (track.is_stream or track.duration > 480000) and not self.native_yt:
                     self.failed_tracks.append(track)
                     self.locked = False
                     await self.process_next()
@@ -1981,23 +1988,26 @@ class LavalinkPlayer(wavelink.Player):
                         final_result.append(t)
 
                     if not (tracks:=final_result):
-                        if exceptions:
-                            print(exceptions)
-                        self.failed_tracks.append(track)
-                        self.set_command_log(emoji="⚠️", text=f"A música [`{track.title[:15]}`](<{track.uri}>) será pulada devido a falta de resultado "
-                                                              "em outras plataformas de música.")
-                        await self.invoke_np()
-                        await asyncio.sleep(13)
-                        self.locked = False
-                        await self.process_next()
-                        return
 
-                    alt_track = tracks[0]
-                    track.temp_id = alt_track.id
-                    self.set_command_log(
-                        emoji="▶️",
-                        text=f"Tocando música obtida via metadados: [`{fix_characters(alt_track.title, 20)}`](<{alt_track.uri}>) `| Por: {fix_characters(alt_track.author, 15)}`"
-                    )
+                        if not self.native_yt:
+
+                            if exceptions:
+                                print(exceptions)
+                            self.failed_tracks.append(track)
+                            self.set_command_log(emoji="⚠️", text=f"A música [`{track.title[:15]}`](<{track.uri}>) será pulada devido a falta de resultado "
+                                                                  "em outras plataformas de música.")
+                            await asyncio.sleep(3)
+                            self.locked = False
+                            await self.process_next()
+                            return
+
+                    else:
+                        alt_track = tracks[0]
+                        track.temp_id = alt_track.id
+                        self.set_command_log(
+                            emoji="▶️",
+                            text=f"Tocando música obtida via metadados: [`{fix_characters(alt_track.title, 20)}`](<{alt_track.uri}>) `| Por: {fix_characters(alt_track.author, 15)}`"
+                        )
 
             elif not track.id:
 
