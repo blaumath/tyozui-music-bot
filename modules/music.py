@@ -2118,7 +2118,7 @@ class Music(commands.Cog):
         except AttributeError:
             pass
 
-        await player.track_end()
+        await player.track_end(ignore_track_loop=True)
         player.ignore_np_once = True
         await player.process_next(inter=interaction)
 
@@ -3394,7 +3394,6 @@ class Music(commands.Cog):
 
             await inter.send(
                 embed=embed,
-                components=song_request_buttons if inter.guild else [],
                 ephemeral=ephemeral
             )
             await player.destroy()
