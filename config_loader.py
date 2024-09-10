@@ -69,6 +69,7 @@ DEFAULT_CONFIG = {
     "VOICE_CHANNEL_LATENCY_RECONNECT": 200,
     "PLAYLIST_CACHE_SIZE": 500,
     "PLAYLIST_CACHE_TTL": 1800,
+    "USE_YTM_TRACKINFO_SCROBBLE": False,
 
     ##############################################
     ### Sistema de música - Suporte ao spotify ###
@@ -260,6 +261,7 @@ def load_config():
 
         "USE_YTDL",
         "PREFER_YOUTUBE_NATIVE_PLAYBACK",
+        "USE_YTM_TRACKINFO_SCROBBLE",
         "FORCE_USE_DEEZER_CLIENT",
         "SILENT_PUBLICBOT_WARNING",
     ]:
