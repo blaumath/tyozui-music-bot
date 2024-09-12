@@ -53,6 +53,8 @@ providers_dict = {
     "tidal": "tdsearch",
 }
 
+native_sources = set("http", "youtube", "soundcloud", "tts", "reddit", "ocremix", "tiktok", "mixcloud", "soundgasm", "flowerytts", "vimeo", "twitch", "bandcamp", "local")
+
 
 def get_start_pos(player, track, extra_milliseconds=0):
     if not track.is_stream:
@@ -580,7 +582,7 @@ class LavalinkPlayer(wavelink.Player):
         if self.bot.config["USE_YTDL"]:
             hint_platforms.append("youtube, soundcloud")
 
-        if self.bot.spotify and not self.bot.spotify.disabled:
+        if (self.bot.spotify and not self.bot.spotify.disabled) or "spotify" in self.node.info["sourceManagers"]:
             hint_platforms.append("spotify")
 
         hint_platforms.append("deezer")
@@ -2940,7 +2942,7 @@ class LavalinkPlayer(wavelink.Player):
                             embed=disnake.Embed(
                                 description=f"🛑 ⠂{self.command_log}",
                                 color=self.bot.get_color(self.guild.me)),
-                            view=song_request_buttons if self.static else None
+                            view=None
                         )
 
                     elif self.controller_mode is True:
@@ -3030,7 +3032,7 @@ class LavalinkPlayer(wavelink.Player):
 
                 if not search_queries:
 
-                    if track.info["sourceName"] in self.node.info.get("sourceManagers", []):
+                    if track.info["sourceName"] in self.node.info.get("sourceManagers", []) and (not self.node.only_use_native_search_providers or track.info["sourceName"] in native_sources):
                         search_queries = [track.uri]
                     else:
                         search_queries = []
