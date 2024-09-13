@@ -6926,8 +6926,8 @@ class Music(commands.Cog):
                 if not tracks:
 
                     try:
-                        tracks = (await self.bot.pool.deezer.get_tracks(url=query, requester=user.id, search=True) or
-                                  await self.bot.pool.spotify.get_tracks(self.bot, user.id, query, search=True))
+                        tracks = (await self.bot.pool.deezer.get_tracks(url=query, requester=user.id, search=True, check_title=True) or
+                                  await self.bot.pool.spotify.get_tracks(self.bot, user.id, query, search=True, check_title=True))
                     except Exception as e:
                         exceptions.add(repr(e))
 

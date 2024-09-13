@@ -31,6 +31,8 @@ import traceback
 from typing import Any, Callable, Dict, Optional, Union, List
 from urllib.parse import quote
 
+import Levenshtein
+
 from utils.music.youtube_trusted_session_generator import Browser
 from .backoff import ExponentialBackoff
 from .errors import *
@@ -452,11 +454,9 @@ class Node:
 
         track_cls = kwargs.pop('track_cls', Track)
 
-        tracks = [
+        return [
             track_cls(id_=track[encoded_name], info=track['info'], pluginInfo=track.get("pluginInfo", {}), **kwargs) for
             track in tracks]
-
-        return tracks
 
         __log__.warning(f'REST | {self.identifier} | Failure to load tracks after 5 attempts.')
 

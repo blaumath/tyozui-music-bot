@@ -2011,7 +2011,9 @@ class LavalinkPlayer(wavelink.Player):
                                 if not tracks:
 
                                     try:
-                                        tracks = await self.node.get_tracks(query, track_cls=LavalinkTrack, playlist_cls=LavalinkPlaylist)
+                                        tracks = await self.node.get_tracks(
+                                            query, track_cls=LavalinkTrack, playlist_cls=LavalinkPlaylist
+                                        )
                                     except:
                                         exceptions += f"{traceback.format_exc()}\n"
                                         await asyncio.sleep(1)
@@ -3046,7 +3048,8 @@ class LavalinkPlayer(wavelink.Player):
                 for query in search_queries:
 
                     try:
-                        tracks = (await self.node.get_tracks(query, track_cls=LavalinkTrack, playlist_cls=LavalinkPlaylist))
+                        tracks = (await self.node.get_tracks(query, track_cls=LavalinkTrack,
+                                                             playlist_cls=LavalinkPlaylist))
                     except Exception as e:
                         if track.info["sourceName"] == "youtube" and any(e in str(e) for e in (
                             "This video is not available",
@@ -3075,8 +3078,11 @@ class LavalinkPlayer(wavelink.Player):
 
                     self.bot.pool.partial_track_cache[f'{track.info["sourceName"]}:{track.author}-{track.single_title}'] = tracks
 
-                    if tracks[0].info["sourceName"] == "bandcamp":
-                        check_duration = False
+                    try:
+                        if tracks[0].info["sourceName"] == "bandcamp":
+                            check_duration = False
+                    except:
+                        pass
 
                     has_exclude_tags = any(tag for tag in exclude_tags if tag.lower() in track.title.lower())
 
