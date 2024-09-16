@@ -372,7 +372,7 @@ class LavalinkTrack(wavelink.Track):
 
         elif self.info["sourceName"] == "soundcloud":
 
-            self.info["artworkUrl"] = self.info.get("artworkUrl", "").replace('-large.', '-t500x500.')
+            self.info["artworkUrl"] = self.info.get("artworkUrl", "").replace('-large.', '-t500x500.').replace('-original.', '-t500x500.')
 
             if "?in=" not in self.uri:
                 try:
@@ -517,6 +517,7 @@ class LavalinkPlayer(wavelink.Player):
         self.members_timeout_task: Optional[asyncio.Task] = None
         self.reconnect_voice_channel_task: Optional[asyncio.Task] = None
         self.idle_endtime: Optional[datetime.datetime] = None
+        self.idle_start_timestamp: Optional[int] = None
         self.hint_rate = self.bot.config["HINT_RATE"]
         self.command_log: str = ""
         self.command_log_emoji: str = ""
@@ -559,6 +560,7 @@ class LavalinkPlayer(wavelink.Player):
         self.prefix_info = kwargs.pop("prefix", "")
 
         self.start_time = disnake.utils.utcnow()
+        self.start_timestamp = self.start_time.timestamp()
 
         self.lastfm_artists = []
 
@@ -849,6 +851,7 @@ class LavalinkPlayer(wavelink.Player):
                 return
 
             self.start_time = disnake.utils.utcnow()
+            self.start_timestamp = self.start_time.timestamp()
 
             self.bot.dispatch("wavelink_track_start", player=self)
 
@@ -1907,7 +1910,9 @@ class LavalinkPlayer(wavelink.Player):
 
                 if not track:
                     await self.stop()
-                    self.idle_endtime = disnake.utils.utcnow() + datetime.timedelta(seconds=self.bot.config["IDLE_TIMEOUT"])
+                    now = disnake.utils.utcnow()
+                    self.idle_start_timestamp = int(now.timestamp())
+                    self.idle_endtime = now + datetime.timedelta(seconds=self.bot.config["IDLE_TIMEOUT"])
                     self.last_track = None
                     self.idle_task = self.bot.loop.create_task(self.idling_mode())
                     self.bot.dispatch("player_queue_end", player=self)
@@ -2764,6 +2769,7 @@ class LavalinkPlayer(wavelink.Player):
 
     async def set_pause(self, pause: bool) -> None:
         await super().set_pause(pause)
+        self.start_timestamp = (disnake.utils.utcnow() - datetime.timedelta(milliseconds=self.position)).timestamp()
         self.bot.dispatch("player_pause" if pause else "player_resume", player=self)
 
     async def destroy_message(self):
@@ -3316,6 +3322,7 @@ class LavalinkPlayer(wavelink.Player):
 
                 try:
                     stats["idle_endtime"] = int(self.idle_endtime.timestamp())
+                    stats["idle_starttime"] = self.idle_start_timestamp
                 except:
                     pass
 
@@ -3336,11 +3343,13 @@ class LavalinkPlayer(wavelink.Player):
                     "loop": self.current.track_loops or self.loop,
                     "queue": len(self.queue),
                     "247": self.keep_connected,
-                    "autoplay": self.current.autoplay
+                    "autoplay": self.current.autoplay,
                 }
 
+                stats["start_time"] = self.start_timestamp
+
                 if self.current.is_stream:
-                    stats["track"]["duration"] = self.start_time.timestamp()
+                    stats["track"]["duration"] = int(self.start_time.timestamp())
                 else:
                     stats["track"]["duration"] = track.duration
 
@@ -3471,6 +3480,7 @@ class LavalinkPlayer(wavelink.Player):
     async def seek(self, position: int = 0) -> None:
         self.last_position = position
         await super().seek(position=position)
+        self.start_timestamp = (disnake.utils.utcnow() - datetime.timedelta(milliseconds=self.position)).timestamp()
         self.bot.dispatch("player_seek", player=self, position=position)
 
     async def set_distortion(self, sin_offset: float = 0, sin_scale: float = 1.0, cos_offset: float = 0,

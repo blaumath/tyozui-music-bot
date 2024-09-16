@@ -520,6 +520,7 @@ class LastFmCog(commands.Cog):
             if track.ytid and track.author.endswith(" - topic") and not track.author.endswith("Release - topic") and not track.title.startswith(track.author[:-8]):
                 name = track.title
                 artist = track.author[:-8]
+                album = name
 
             else:
                 track_query = track.title.lower() if len(track.title) > 12 else f"{track.author} - {track.title}".lower()
@@ -585,7 +586,7 @@ class LastFmCog(commands.Cog):
 
                 name = fmdata["name"]
                 artist = fmdata["artist"]
-                album = fmdata["album"]
+                album = fmdata["album"] or name
 
                 artist = artist.split(",")[0]
 
