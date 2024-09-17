@@ -365,8 +365,7 @@ class LavalinkTrack(wavelink.Track):
             self.info["artworkUrl"] = f"https://img.youtube.com/vi/{self.ytid}/mqdefault.jpg"
             if "list=" not in self.uri:
                 try:
-                    self.uri = f"{self.uri}&list={parse.parse_qs(parse.urlparse(self.playlist_url or self.album_url).query)['list'][0]}"
-                    self.info["uri"] = self.uri
+                    self.info['uri'] = f"{self.uri}&list={parse.parse_qs(parse.urlparse(self.playlist_url or self.album_url).query)['list'][0]}"
                 except KeyError:
                     pass
 
@@ -376,8 +375,7 @@ class LavalinkTrack(wavelink.Track):
 
             if "?in=" not in self.uri:
                 try:
-                    self.uri = f"{self.uri}?in=" + self.playlist_url.split("soundcloud.com/")[1]
-                    self.info["uri"] = self.uri
+                    self.info['uri'] = f"{self.uri}?in=" + self.playlist_url.split("soundcloud.com/")[1]
                 except:
                     pass
 
@@ -1217,9 +1215,15 @@ class LavalinkPlayer(wavelink.Player):
                     self.bot.music.players[self.guild_id]
                 except KeyError:
                     return
-                if self.guild and self.guild.me.voice:
+                if self.guild and self.guild.me.voice or self.is_closing:
                     return
-                await self.last_channel.connect()
+
+                try:
+                    vc_id = self.guild.me.voice.channel.id
+                except AttributeError:
+                    vc_id = self.last_channel.id
+
+                await self.connect(vc_id)
                 return
 
         if isinstance(event, wavelink.TrackStuck):
