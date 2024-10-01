@@ -7220,15 +7220,22 @@ class Music(commands.Cog):
             if not b.bot_ready:
                 continue
 
-            if b.user in inter.author.voice.channel.members:
-                free_bots.append(b)
-                break
-
             g = b.get_guild(guild.id)
 
             if not g:
                 bot_count += 1
                 continue
+
+            author = g.get_member(inter.author.id)
+
+            if not author:
+                continue
+
+            inter.author = author
+
+            if b.user in inter.author.voice.channel.members:
+                free_bots.append(b)
+                break
 
             p: LavalinkPlayer = b.music.players.get(guild.id)
 
