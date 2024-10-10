@@ -129,6 +129,9 @@ class PartialTrack:
     def __repr__(self):
         return f"{self.info['sourceName']} - {self.duration} - {self.authors_string} - {self.title}"
 
+    def __str__(self):
+        return f"{self.info['sourceName']} - {self.duration} - {self.authors_string} - {self.title}"
+
     @property
     def thumb(self) -> str:
         try:
@@ -141,7 +144,7 @@ class PartialTrack:
 
     @property
     def uri(self) -> str:
-        return self.info["uri"]
+        return self.info["uri"] or self.search_uri
 
     @property
     def url(self) -> str:
@@ -149,7 +152,7 @@ class PartialTrack:
 
     @property
     def search_uri(self):
-        return f"https://www.youtube.com/results?search_query={quote(self.title)}"
+        return f"https://www.youtube.com/results?search_query={quote((self.author + '-' + self.title) if self.info['sourceName'] not in ('youtube', 'soundcloud') else self.title)}"
 
     @property
     def title(self) -> str:
@@ -3044,13 +3047,7 @@ class LavalinkPlayer(wavelink.Player):
         if track.id:
             return
 
-        if track.info["sourceName"] == "last.fm":
-            check_author = True
-            check_duration = False
-
-        else:
-            check_author = False
-            check_duration = True
+        check_duration = bool(track.duration)
 
         try:
 
@@ -3124,9 +3121,6 @@ class LavalinkPlayer(wavelink.Player):
 
                     for t in result:
 
-                        if check_author and not (t.author.lower() in track.author.lower() or track.author.lower() in t.title.lower()):
-                            continue
-
                         if t.is_stream:
                             continue
 
@@ -3136,7 +3130,7 @@ class LavalinkPlayer(wavelink.Player):
                         track_check = track.title if track.info["sourceName"] not in ("youtube", "soundcloud") else f"{track.author} - {track.title}"
                         t_check = t.title if t.info["sourceName"] not in ("youtube", "soundcloud") else f"{t.author} - {t.title}"
 
-                        if fuzz.token_sort_ratio(t_check, track_check) < 70:
+                        if fuzz.token_sort_ratio(t_check, track_check) < 80:
                             continue
 
                         if check_duration and not ((t.duration - 10000) < track.duration < (t.duration + 10000)):
@@ -3145,10 +3139,9 @@ class LavalinkPlayer(wavelink.Player):
                         selected_track = t
                         break
 
-                    if not selected_track:
-                        continue
+                    if selected_track:
+                        break
 
-                    break
 
             if not selected_track:
                 try:
@@ -3163,6 +3156,7 @@ class LavalinkPlayer(wavelink.Player):
             if track.info["sourceName"] == "last.fm":
                 track.info["pluginInfo"] = selected_track.info.get("pluginInfo", {})
                 track.info["author"] = selected_track.author
+                track.info["title"] = selected_track.title
                 track.info["sourceName"] = selected_track.info["sourceName"]
                 track.info["uri"] = selected_track.info["uri"]
             else:
