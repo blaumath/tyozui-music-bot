@@ -152,7 +152,7 @@ class PartialTrack:
 
     @property
     def search_uri(self):
-        return f"https://www.youtube.com/results?search_query={quote((self.author + '-' + self.title) if self.info['sourceName'] not in ('youtube', 'soundcloud') else self.title)}"
+        return f"https://www.youtube.com/results?search_query={quote((self.author + '-' + self.single_title) if self.info['sourceName'] not in ('youtube', 'soundcloud') else self.title)}"
 
     @property
     def title(self) -> str:
@@ -3049,6 +3049,9 @@ class LavalinkPlayer(wavelink.Player):
 
         check_duration = bool(track.duration)
 
+        if track.info["sourceName"] == "last.fm":
+            check_duration = False
+
         try:
 
             exceptions = []
@@ -3127,10 +3130,7 @@ class LavalinkPlayer(wavelink.Player):
                         if not has_exclude_tags and any(tag for tag in exclude_tags if tag.lower() in t.title.lower()):
                             continue
 
-                        track_check = track.title if track.info["sourceName"] not in ("youtube", "soundcloud") else f"{track.author} - {track.title}"
-                        t_check = t.title if t.info["sourceName"] not in ("youtube", "soundcloud") else f"{t.author} - {t.title}"
-
-                        if fuzz.token_sort_ratio(t_check, track_check) < 80:
+                        if fuzz.token_sort_ratio(track.title.lower(), t.title.lower()) < 70:
                             continue
 
                         if check_duration and not ((t.duration - 10000) < track.duration < (t.duration + 10000)):
@@ -3141,7 +3141,6 @@ class LavalinkPlayer(wavelink.Player):
 
                     if selected_track:
                         break
-
 
             if not selected_track:
                 try:

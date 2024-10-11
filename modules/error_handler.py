@@ -491,6 +491,5 @@ class ErrorHandler(commands.Cog):
             webhook = disnake.Webhook.from_url(self.bot.config["AUTO_ERROR_REPORT_WEBHOOK"], session=session)
             await webhook.send(**kwargs)
 
-
 def setup(bot: BotCore):
     bot.add_cog(ErrorHandler(bot))

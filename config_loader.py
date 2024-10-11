@@ -18,6 +18,7 @@ DEFAULT_CONFIG = {
     "COMMAND_LOG": False,
     "EMBED_COLOR": None,
     "BOT_ADD_REMOVE_LOG": '',
+    "BOT_ADD_REMOVE_LOG_CHANNEL_ID": 0,
     "ERROR_REPORT_WEBHOOK": '',
     "AUTO_ERROR_REPORT_WEBHOOK": '',
     "INTERACTION_COMMAND_ONLY": False,
@@ -214,6 +215,7 @@ def load_config():
         "PLAYLIST_CACHE_SIZE",
         "PLAYLIST_CACHE_TTL",
         "SPOTIFY_PLAYLIST_EXTRA_PAGE_LIMIT",
+        "BOT_ADD_REMOVE_LOG_CHANNEL_ID",
     ]:
         try:
             new_value = int(CONFIG[i])
