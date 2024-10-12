@@ -1402,6 +1402,14 @@ class LavalinkPlayer(wavelink.Player):
         elif self.skin_static not in self.bot.pool.player_static_skins:
             self.skin_static = self.bot.pool.default_static_skin
 
+    def start_members_timeout(self, check: bool, force: bool = False, idle_timeout = None):
+        try:
+            self.members_timeout_task.cancel()
+        except:
+            pass
+        self.members_timeout_task = self.bot.loop.create_task(self.members_timeout(check=check, force=force,
+                                                                                   idle_timeout=idle_timeout))
+
     async def members_timeout(self, check: bool, force: bool = False, idle_timeout = None):
 
         if check:
@@ -1493,6 +1501,14 @@ class LavalinkPlayer(wavelink.Player):
         else:
 
             if self.is_closing:
+                return
+
+            try:
+                vc = self.guild.me.voice.channel
+            except AttributeError:
+                vc = self.last_channel
+
+            if [m for m in vc.members if not m.bot]:
                 return
 
             msg = "**O player foi desligado por falta de membros no canal" + (f" <#{self.guild.me.voice.channel.id}>"
@@ -3130,7 +3146,11 @@ class LavalinkPlayer(wavelink.Player):
                         if not has_exclude_tags and any(tag for tag in exclude_tags if tag.lower() in t.title.lower()):
                             continue
 
-                        if fuzz.token_sort_ratio(track.title.lower(), t.title.lower()) < 70:
+                        check_similarity = lambda a, b: len(set(a) & set(b)) / len(set(a))
+
+                        norm_title = lambda tc: f"{tc.author} - {tc.single_title}".lower() if (tc.info["sourceName"] not in ("youtube", "soundcloud") or len(tc.title) < 12) else tc.title.lower()
+
+                        if check_similarity(set(norm_title(t).split()), norm_title(track).split()) < 0.80:
                             continue
 
                         if check_duration and not ((t.duration - 10000) < track.duration < (t.duration + 10000)):
@@ -3143,9 +3163,14 @@ class LavalinkPlayer(wavelink.Player):
                         break
 
             if not selected_track:
-                try:
-                    selected_track = tracks[0]
-                except IndexError:
+
+                if track.info["sourceName"] != "last.fm":
+                    try:
+                        selected_track = tracks[0]
+                    except:
+                        pass
+
+                if not selected_track:
                     if exceptions:
                         print("Falha ao resolver PartialTrack:\n" + "\n".join(repr(e) for e in exceptions))
                     return
