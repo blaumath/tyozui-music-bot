@@ -15,7 +15,6 @@ from typing import TYPE_CHECKING, List, Union
 import disnake
 import pylrc
 import syncedlyrics
-from cachetools import TTLCache
 from disnake.ext import commands
 
 from utils.music.checks import has_source, check_voice, is_dj
@@ -56,26 +55,9 @@ class LiveLyrics(commands.Cog):
     def __init__(self, bot: BotCore):
         self.bot = bot
 
-        if not hasattr(bot.pool, 'lyric_data_cache'):
-            bot.pool.lyric_data_cache: TTLCache = self.lyric_load_cache_data()
-
-    def lyric_load_cache_data(self):
-
-        cache = TTLCache(maxsize=30000, ttl=600*10)
-
-        if os.path.exists(cache_data_file):
-            with open(cache_data_file, 'rb') as f:
-                try:
-                    cache.update(pickle.load(f))
-                except EOFError:
-                    pass
-
-        return cache
-
     def lyric_id_save_cache_data(self):
         with open(cache_data_file, 'wb') as f:
             pickle.dump(self.bot.pool.lyric_data_cache, f)
-
 
     @commands.is_owner()
     @commands.command(hidden=True, aliases=["ccl"])
@@ -85,10 +67,9 @@ class LiveLyrics(commands.Cog):
             os.remove(cache_data_file)
         except FileNotFoundError:
             pass
-        self.bot.pool.lyric_data_cache = self.lyric_load_cache_data()
         await ctx.send("Cache de lyrics limpo!")
 
-    async def fetch_lavalink_lyrics(self, query, ytm_id: str = None):
+    async def fetch_lavalink_lyrics(self, query, ytm_id: str = None, duration: int = None):
 
         try:
             node = [n for n in self.bot.music.nodes.values() if n.lyric_support][0]
@@ -137,9 +118,17 @@ class LiveLyrics(commands.Cog):
 
             self.bot.pool.lyric_data_cache[cache_key] = lyric_data
 
+        try:
+            if duration:
+                last_timestamp = lyric_data["lines"][-1]["range"]["end"]
+                if not (last_timestamp - 20000) < duration < (last_timestamp + 20000):
+                    return {}
+        except KeyError:
+            pass
+
         return lyric_data
 
-    async def fetch_lib_lyrics(self, query: str):
+    async def fetch_lib_lyrics(self, query: str, duration = None):
 
         save = False
 
@@ -167,6 +156,12 @@ class LiveLyrics(commands.Cog):
         try:
             lrc: List[pylrc.parser.LyricLine] = pylrc.parse(''.join([f"{l}\n" for l in lrc.split("\n")]))
 
+            if duration and not ((lrc[-1].time * 1000) - 20000) < duration < (lrc[-1].time * 1000) + 20000:
+                self.bot.pool.lyric_data_cache[cache_key] = {}
+                if save:
+                    self.lyric_id_save_cache_data()
+                return
+
             lines = []
 
             time_start = 0
@@ -178,7 +173,7 @@ class LiveLyrics(commands.Cog):
 
                 if time_start:
                     start = time_start
-                    time_start -= time_start
+                    time_start = 0
                 else:
                     start = d.time * 1000
 
@@ -194,11 +189,10 @@ class LiveLyrics(commands.Cog):
                         lines[n - 1]["range"]["end"] = end
                         if text != "♪":
                             lines[n - 1]["line"] += f". {text}"
-                        time_start += start
+                        time_start = start
+                        continue
                     except IndexError:
                         pass
-                    else:
-                        continue
 
                 lines.append({"line": text, "range": {"start": start, "end": end}})
 
@@ -220,14 +214,14 @@ class LiveLyrics(commands.Cog):
 
         return data
 
-    async def fetch_lyrics(self, query: str, ytm_id: str = None, lavalink_first=False):
+    async def fetch_lyrics(self, query: str, ytm_id: str = None, duration: int = None, lavalink_first=False):
 
         query = remove_characters(query.lower())
 
         if lavalink_first:
-            data = await self.fetch_lavalink_lyrics(query=query, ytm_id=ytm_id) or await self.fetch_lib_lyrics(query)
+            data = await self.fetch_lavalink_lyrics(query=query, ytm_id=ytm_id, duration=duration) or await self.fetch_lib_lyrics(query, duration=duration)
         else:
-            data = await self.fetch_lib_lyrics(query) or await self.fetch_lavalink_lyrics(query=query, ytm_id=ytm_id)
+            data = await self.fetch_lib_lyrics(query, duration=duration) or await self.fetch_lavalink_lyrics(query=query, ytm_id=ytm_id, duration=duration)
 
         return data
 
@@ -337,7 +331,7 @@ class LiveLyrics(commands.Cog):
 
         await inter.response.defer(ephemeral=ephemeral)
 
-        lrc = await self.fetch_lyrics(*self.parse_lyric_query(player.current))
+        lrc = await self.fetch_lyrics(*self.parse_lyric_query(player.current), duration=player.current.duration)
 
         if not lrc:
             raise GenericError(f"**Não houve resultados para a música:**\n-# [{player.current.single_title} - {player.current.authors_string}]({player.current.uri})")
@@ -580,13 +574,10 @@ class LiveLyrics(commands.Cog):
             if not perms.read_messages or not perms.send_messages:
                 return
 
-            if player.current.is_stream or not (15000 < player.current.duration < 480000):
+            if player.current.is_stream or not (15000 < player.current.duration < 480000) or (player.current.duration - player.position) < 3000:
                 lyrics_data = {}
             else:
-                lyrics_data = await self.fetch_lyrics(*self.parse_lyric_query(player.current))
-
-            if (player.current.duration - player.position) < 3000:
-                return
+                lyrics_data = await self.fetch_lyrics(*self.parse_lyric_query(player.current), duration=player.current.duration)
 
             if not lyrics_data or not (lineinfos := lyrics_data.get("lines")):
                 return
